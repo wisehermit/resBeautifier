@@ -14,10 +14,15 @@ function ResBeautifier() {
     this.dotImg = 'http://w20.wofh.ru/p/_.gif'; // @TODO: change to relative link
     this.styles = [
         '.resBeautifier { height:20px; margin-bottom:1px; border-bottom:1px #bbb solid; }',
-        '.resBeautifier  div { float:left; overflow:visible; line-height:20px; width:50px; }',
-        '.resBeautifier .progressbar { float:none; height:20px; border-bottom:2px #99f solid; width:0px; }',
+        '.resBeautifier  div { float:left; overflow:visible; white-space:nowrap; line-height:20px; width:50px; }',
+        '.resBeautifier .progressbar { float:none; border-bottom:2px #99f solid; width:0px; height:20px; }',
         '#resBeautifier .storemax { display:block; color:#000; font-weight:bold; text-align:center; padding-bottom:10px; width:100%; }'
     ];
+
+    this.colors = {
+      'r': ['da1b2a', 'e22b2d', 'df362f', 'de4b41', 'e15f52', 'e06f67', 'e3827c', 'e89295', 'e9a8ae', 'ecbdc5'],
+      'g': ['c2ddd8', 'acd0c4', '92c2b2', '7fbc9b', '6eba8b', '61b67b', '5cae6c', '52a752', '50a347', '4ea242']
+    };
 
 
     this.initialize = function () {
@@ -36,6 +41,12 @@ function ResBeautifier() {
         // Создаем новый объект со всеми интересующими нас ресурсами
         for (resId in wofh.town.resources.current) {
 
+            // Исключаем все ресурсы которых осталось меньше 1 (кроме знаний и денег)
+            if (resId < 0 || (resId > 1 && wofh.town.resources.current[resId] < 1 && wofh.town.resources.alter[resId] == 0)) {
+                continue;
+            }
+
+            // Собираем основные параметры
             this.resources[resId] = {
                 name:    lib.resource.data[resId].name,
                 current: wofh.town.resources.current[resId],
@@ -92,10 +103,13 @@ function ResBeautifier() {
         for (resId in this.resources) {
 
             // one more wrapper. this is madness.
-            var wrapper = this.createElement('span', {
+            var wrapper = this.createElement('div', {
                 'class': 'resBeautifier'
             });
 
+            if (((typeof this.resources[1] == 'undefined' && resId == 0) || resId == 1) || resId == 3) {
+                wrapper.setAttribute('style', 'margin-bottom:10px;');
+            }
 
             var iconImg = this.createElement('img', {
                 'src':   this.dotImg,
@@ -106,11 +120,21 @@ function ResBeautifier() {
             var currentSpan = this.createElement('span', {
                 'id': 'rbCurrent' + resId
             });
-            currentSpan.innerHTML = Math.floor(this.resources[resId]['current']);
+            currentSpan.innerHTML = this.smartRound(this.resources[resId]['current'], 5);
 
             var iconDiv = this.createElement('div', {
                 'style': 'width:75px'
             });
+
+            // Если это наука или деньги - создаем ссылку для слива
+            if (resId <= 1) {
+                var upLink = this.createElement('a', {
+                    'href': resId == 0 ? '/scienceup' : '/moneyup'
+                });
+                $(upLink).append(iconImg);
+
+                iconImg = upLink; // lousy..
+            }
 
             $(iconDiv).append(iconImg)
                       .append(currentSpan);
@@ -121,7 +145,8 @@ function ResBeautifier() {
             var alterDiv = this.createElement('div', {
                 'id': 'rbAlter' + resId
             });
-            alterDiv.innerHTML = this.resources[resId]['alter'].toFixed(2);
+            var alter = this.resources[resId]['alter'];
+            alterDiv.innerHTML = alter != 0 ? ((alter > 0 ? '+' : '') + this.smartRound(alter, 4)) : '&nbsp;';
 
             $(wrapper).append(alterDiv);
 
@@ -146,16 +171,19 @@ function ResBeautifier() {
             var dropdownDiv = this.createElement('div', {
                 'style': 'width:10px;position:relative'
             });
-            dropdownDiv.innerHTML = 'V';
+
+            var dropdownImg = this.createElement('img', {
+                'src':   this.dotImg,
+                'class': 'icsort2',
+                'style': 'cursor:pointer',
+            });
+
+            $(dropdownDiv).append(dropdownImg);
 
             // @TODO: Add dropdown event
+
             $(wrapper).append(dropdownDiv);
 
-
-            // temp placeholder
-            //$(wrapper).append(this.createElement('div', {
-            //    'style': 'width:100%;float:none;clear:both'
-            //}));
 
             var progressBarDiv = this.createElement('div', {
                 'id':    'rbProgressBar' + resId,
@@ -191,8 +219,7 @@ function ResBeautifier() {
                 this.resources[resId]['current'] = this.resources_max;
             }
 
-            $('#rbCurrent' + resId).html(this.resources[resId]['current'].toFixed(2));
-
+            $('#rbCurrent' + resId).html(this.smartRound(this.resources[resId]['current'], 5));
 
             var percent = this.getPercent(resId);
             $('#rbPercent' + resId).html(percent + '%');
@@ -204,7 +231,7 @@ function ResBeautifier() {
                                     .css('color', timeleft == '00:00:00' ? '#d33' : '#000');
 
 
-            $('#rbProgressBar' + resId).css('width', percent + '%');
+            this.setProgressBar(resId, percent);
 
         }
 
@@ -268,6 +295,34 @@ function ResBeautifier() {
         var s = ('0' + (seconds - (h * 3600) - (m * 60))).slice(-2);
 
         return h + ':' + m + ':' + s;
+
+    }
+
+    
+    this.setProgressBar = function (resId, percent) {
+
+        percent = percent || this.getPercent(resId);
+
+        var color = '9999ff'; // alter = 0
+
+        if (percent >= 100) {
+            color = 'b681b4';
+            percent = 100;
+        }
+
+        if (this.resources[resId]['alter'] != 0 && percent != 100) {
+            color = this.colors[this.resources[resId]['alter'] > 0 ? 'g' : 'r'][Math.floor(percent / 10)];
+        }
+
+        $('#rbProgressBar' + resId).css('width', percent + '%')
+                                   .css('border-color', '#' + color);
+
+    }
+
+    
+    this.smartRound = function (value, maxlen) {
+
+        return (Math.floor(value * 1000) / 1000).toFixed(Math.abs(value).toFixed(1).length <= maxlen ? 1 : 0);
 
     }
 
