@@ -7,6 +7,9 @@ function ResBeautifier() {
 
     this.resources = {};
     this.resources_max = 0;
+    
+    this.timeoutHandler;
+    this.offsetTime = 0;
 
     this.dotImg = 'http://w20.wofh.ru/p/_.gif'; // @TODO: change to relative link
     this.styles = [
@@ -18,6 +21,9 @@ function ResBeautifier() {
 
 
     this.initialize = function () {
+        
+        // Разница во времени между сервером и клиентом
+        this.offsetTime = wofh.time - this.getTimestamp();
 
         // Проверяем наличие правой колонки на текущей странице
         if ($('.chcol1.chcol_p1').length <= 0) {
@@ -43,6 +49,9 @@ function ResBeautifier() {
 
         // Создаем основной враппер и заполняем его ресурсами
         this.buildResourceBlock();
+        
+        // Запускаем ежесекундную обработку всех пераметров
+        this.handling();
 
     }
 
@@ -162,6 +171,105 @@ function ResBeautifier() {
         }
 
     }
+    
+    
+    this.handling = function () {
+
+        // just in case
+        clearTimeout(this.timeoutHandler);
+
+        for (resId in this.resources) {
+
+            var elapsed = this.getTimestamp() + this.offsetTime - wofh.time;
+            this.resources[resId]['current'] = this.resources[resId]['initial'] + this.resources[resId]['alter'] / 60 / 60 * elapsed;
+
+            if (this.resources[resId]['current'] < 0) {
+                this.resources[resId]['current'] = 0;
+            }
+
+            if (resId > 1 && this.resources[resId]['current'] > this.resources_max) {
+                this.resources[resId]['current'] = this.resources_max;
+            }
+
+            $('#rbCurrent' + resId).html(this.resources[resId]['current'].toFixed(2));
+
+
+            var percent = this.getPercent(resId);
+            $('#rbPercent' + resId).html(percent + '%');
+
+
+            var timeleft = this.getTimeLeft(resId);
+
+            $('#rbTimeleft' + resId).html(timeleft)
+                                    .css('color', timeleft == '00:00:00' ? '#d33' : '#000');
+
+
+            $('#rbProgressBar' + resId).css('width', percent + '%');
+
+        }
+
+        this.timeoutHandler = setTimeout(function () {
+            resBeautifier.handling()
+        }, 1000);
+
+    }
+
+
+    this.getPercent = function (resId) {
+
+        var max = this.resources_max;
+
+        if (resId == 0) {
+            max = this.resources[resId]['alter'] / Math.round(wofh.town.budget.bars[0] * 100) * 60 * 6.6667;
+        }
+
+        if (resId == 1) {
+            max = Math.abs(this.resources[resId]['alter']) * 8.0000;
+        }
+
+        this.resources[resId]['percent'] = Math.floor(this.resources[resId]['current'] / (Math.round(max) / 100)); // r>f
+        return this.resources[resId]['percent'];
+
+    }
+
+
+    this.getTimeLeft = function (resId) {
+
+        if (this.resources[resId]['alter'] == 0) {
+            return;
+        }
+
+
+        var boundary = this.resources[resId]['alter'] > 0 ? this.resources_max : 0;
+
+        if (resId == 0) {
+            var limit = this.resources[resId]['percent'] < 100 ? 6.6667 : 12;
+            boundary = this.resources[resId]['alter'] / Math.round(wofh.town.budget.bars[0] * 100) * 60 * limit;
+        }
+
+        if (resId == 1 && this.resources[resId]['alter'] > 0) {
+            boundary = this.resources[resId]['alter'] * 8.0000;
+        }
+
+        var seconds = (boundary - this.resources[resId]['current']) / this.resources[resId]['alter'] * 3600;
+
+        if (seconds < 0) {
+            return '00:00:00';
+        }
+
+        if (seconds > 86400 * 3) {
+            return (seconds / 86400).toFixed(1) + ' дн.';
+        }
+
+        seconds = parseInt(seconds, 10);
+
+        var h = ('0' + Math.floor(seconds / 3600)).slice(-2);
+        var m = ('0' + Math.floor((seconds - (h * 3600)) / 60)).slice(-2);
+        var s = ('0' + (seconds - (h * 3600) - (m * 60))).slice(-2);
+
+        return h + ':' + m + ':' + s;
+
+    }
 
 
     this.createElement = function (type, attributes) {
@@ -193,6 +301,14 @@ function ResBeautifier() {
 
     }
 
+    
+    this.getTimestamp = function () {
+
+        return Math.floor(new Date().getTime() / 1000);
+
+    }
+
+    
 }
 
 var resBeautifier = new ResBeautifier();
