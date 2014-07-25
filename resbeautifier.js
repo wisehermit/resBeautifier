@@ -16,12 +16,17 @@ function ResBeautifier() {
         '.resBeautifier { height:20px; margin-bottom:1px; border-bottom:1px #bbb solid; }',
         '.resBeautifier  div { float:left; overflow:visible; white-space:nowrap; line-height:20px; width:50px; }',
         '.resBeautifier .progressbar { float:none; border-bottom:2px #99f solid; width:0px; height:20px; }',
+        '#resBeautifier .rbNotification { margin:10px 0px; font-size:1.1em; display:none; line-height:18px; width:225px; }',
         '#resBeautifier .storemax { display:block; color:#000; font-weight:bold; text-align:center; padding-bottom:10px; width:100%; }'
     ];
 
     this.colors = {
       'r': ['da1b2a', 'e22b2d', 'df362f', 'de4b41', 'e15f52', 'e06f67', 'e3827c', 'e89295', 'e9a8ae', 'ecbdc5'],
       'g': ['c2ddd8', 'acd0c4', '92c2b2', '7fbc9b', '6eba8b', '61b67b', '5cae6c', '52a752', '50a347', '4ea242']
+    };
+
+    this.sounds = {
+      'flute': '//www.storiesinflight.com/html5/audio/flute_c_long_01.wav',
     };
 
 
@@ -182,14 +187,13 @@ function ResBeautifier() {
             });
 
             var dropdownImg = this.createElement('img', {
-                'src':   this.dotImg,
-                'class': 'icsort2',
-                'style': 'cursor:pointer',
+                'src':      this.dotImg,
+                'class':   'icsort2',
+                'style':   'cursor:pointer',
+                'onclick': 'resBeautifier.showNotificationForm(' + resId + ')' // @TODO:
             });
 
             $(dropdownDiv).append(dropdownImg);
-
-            // @TODO: Add dropdown event
 
             $(wrapper).append(dropdownDiv);
 
@@ -202,14 +206,79 @@ function ResBeautifier() {
             $(wrapper).append(progressBarDiv);
 
 
+            var notificationDiv = this.createElement('div', {
+                'id':    'rbNotification' + resId,
+                'class': 'acont rbNotification',
+            });
+
+
             // wrapper into wrapper with wrappers...
-            $(resBeautifierWrapper).append(wrapper);
+            $(resBeautifierWrapper).append(wrapper)
+                                   .append(notificationDiv);
 
         }
 
     }
     
-    
+
+    this.showNotificationForm = function (resId) {
+
+        $('#rbNotification' + resId).html('<a>Напоминание при достижении лимита</a>');
+
+
+        var notificationSpan = this.createElement('span', {
+            'style': 'float:left;width:90px'
+        });
+        notificationSpan.innerHTML = 'Ресурс:';
+
+        $('#rbNotification' + resId).append(notificationSpan);
+
+
+        var iconImg = this.createElement('img', {
+            'src':   this.dotImg,
+            'class': 'res r' + resId,
+            'title': this.resources[resId]['name']
+        });
+
+        $('#rbNotification' + resId).append(iconImg);
+
+        // current value
+        $('#rbNotification' + resId + ' img').after(this.smartRound(this.resources[resId]['current'], 5));
+
+
+        var notificationSpan = this.createElement('span', {
+            'style': 'float:left;width:90px'
+        });
+        notificationSpan.innerHTML = 'Количество:';
+
+        $('#rbNotification' + resId).append(notificationSpan);
+
+
+        var fraction = this.resources[resId]['current'] / 250;
+
+        var notificationInput = this.createElement('input', {
+            'id':    'rbNoticeValue' + resId,
+            'value': (this.resources[resId]['alter'] >= 0 ? Math.ceil(fraction) : Math.floor(fraction)) * 250
+        });
+
+        $('#rbNotification' + resId).append(notificationInput);
+
+
+        var notificationSubmit = this.createElement('input', {
+            'type':    'submit',
+            'value':   'Установить напоминание',
+            'style':   'margin:5px 0 0 45px',
+            'onclick': 'resBeautifier.setNotification(' + resId + ');return false;' // @TODO:
+        });
+
+        $('#rbNotification' + resId).append(notificationSubmit);
+
+        // toggle form on click
+        $('#rbNotification' + resId).toggle();
+
+    }
+
+
     this.handling = function () {
 
         // just in case
@@ -243,6 +312,42 @@ function ResBeautifier() {
             this.setProgressBar(resId, percent);
 
         }
+
+        // notifications
+        var notifications = JSON.parse(this.getCookie('rbNotifications') || '{}');
+
+        for (var townId in notifications) {
+
+            // Работаем только с текущим городом.
+            if (townId != wofh.town.id) {
+                delete notifications[townId];
+                continue;
+            }
+
+            for (var resId in notifications[townId]) {
+                if (Math.round(this.resources[resId]['current']) >= notifications[townId][resId]) {
+
+                    $('#rbNotification' + resId).html('Достигнут установленный лимит')
+                                                .show();
+
+                    var audio = this.createElement('audio', {
+                        'src':     this.sounds['flute'],
+                        'preload': 'auto',
+                    });
+
+                    audio.play();
+
+                    delete notifications[townId][resId];
+
+                }
+            }
+
+        }
+
+        this.setCookie('rbNotifications', JSON.stringify(notifications), {
+            domain: '.wofh.ru'
+        });
+
 
         this.timeoutHandler = setTimeout(function () {
             resBeautifier.handling()
@@ -329,6 +434,36 @@ function ResBeautifier() {
     }
 
 
+    this.setNotification = function (resId) {
+
+        var alter   = this.resources[resId]['alter'],
+            current = this.resources[resId]['current'],
+            value   = parseInt($('#rbNoticeValue' + resId).val());
+
+
+        if (alter == 0 || (value < 0 || value > this.resources_max) || (alter > 0 && value < current) || (alter < 0 && value > current)) {
+            alert('Невозможно установить указанный лимит. Проверьте введенное значение и попробуйте снова.');
+        }
+
+
+        var notifications = JSON.parse(this.getCookie('rbNotifications') || '{}');
+
+        if (typeof notifications[wofh.town.id] == 'undefined') {
+            notifications[wofh.town.id] = {};
+        }
+
+        notifications[wofh.town.id][resId] = value;
+
+        this.setCookie('rbNotifications', JSON.stringify(notifications), {
+            domain: '.wofh.ru'
+        });
+        
+        $('#rbNotification' + resId).html('Установлено')
+                                    .delay(1000).fadeOut(500);
+
+    }
+
+
     this.resforecast = function () {
 
         for (resId in this.resources) {
@@ -400,6 +535,47 @@ function ResBeautifier() {
         }
 
         head.appendChild(style);
+
+    }
+
+
+    this.getCookie = function (name) {
+
+        var matches = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
+        return matches ? decodeURIComponent(matches[1]) : undefined;
+
+    }
+
+
+    this.setCookie = function (name, value, options) {
+
+        options = options || {};
+
+        var expires = options.expires;
+
+        if (typeof expires == 'number' && expires) {
+            var d = new Date();
+            d.setTime(d.getTime() + expires * 1000);
+            expires = options.expires = d;
+        }
+
+        if (expires && expires.toUTCString) {
+            options.expires = expires.toUTCString();
+        }
+
+        value = encodeURIComponent(value);
+
+        var updatedCookie = name + '=' + value;
+
+        for (var propName in options) {
+            updatedCookie += '; ' + propName;
+            var propValue = options[propName];
+            if (propValue !== true) {
+                updatedCookie += '=' + propValue;
+            }
+        }
+
+        document.cookie = updatedCookie;
 
     }
 
