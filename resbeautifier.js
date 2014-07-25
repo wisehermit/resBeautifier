@@ -89,6 +89,9 @@ function ResBeautifier() {
         // Для поддержки повторной инициализации
         $('#resBeautifier').remove();
 
+        // Удаляем стандартный склад
+        $('.chcol1.chcol_p1:first').remove();
+
         // Создаем основной враппер
         var resBeautifierWrapper = this.createElement('div', {
             'id':    'resBeautifier',
@@ -121,7 +124,7 @@ function ResBeautifier() {
                 'class': 'resBeautifier'
             });
 
-            if (((typeof this.resources[1] == 'undefined' && resId == 0) || resId == 1) || resId == 3) {
+            if(((!wofh.account.research.ability.money && resId == 0) || resId == 1) || resId == 3) {
                 wrapper.setAttribute('style', 'margin-bottom:10px;');
             }
 
@@ -190,8 +193,13 @@ function ResBeautifier() {
                 'src':      this.dotImg,
                 'class':   'icsort2',
                 'style':   'cursor:pointer',
-                'onclick': 'resBeautifier.showNotificationForm(' + resId + ')' // @TODO:
             });
+
+            dropdownImg.onclick = function(x) {
+                return function() {
+                    resBeautifier.showNotificationForm(x);
+                }
+            }(resId);
 
             $(dropdownDiv).append(dropdownImg);
 
@@ -243,11 +251,11 @@ function ResBeautifier() {
         $('#rbNotification' + resId).append(iconImg);
 
         // current value
-        $('#rbNotification' + resId + ' img').after(this.smartRound(this.resources[resId]['current'], 5));
+        $('#rbNotification' + resId + ' img').after(Math.floor(this.resources[resId]['current']));
 
 
         var notificationSpan = this.createElement('span', {
-            'style': 'float:left;width:90px'
+            'style': 'float:left;width:90px;clear:both'
         });
         notificationSpan.innerHTML = 'Количество:';
 
@@ -268,8 +276,14 @@ function ResBeautifier() {
             'type':    'submit',
             'value':   'Установить напоминание',
             'style':   'margin:5px 0 0 45px',
-            'onclick': 'resBeautifier.setNotification(' + resId + ');return false;' // @TODO:
         });
+
+        notificationSubmit.onclick = function(x) {
+            return function() {
+                resBeautifier.setNotification(x);
+                return false;
+            }
+        }(resId);
 
         $('#rbNotification' + resId).append(notificationSubmit);
 
@@ -325,7 +339,9 @@ function ResBeautifier() {
             }
 
             for (var resId in notifications[townId]) {
-                if (Math.round(this.resources[resId]['current']) >= notifications[townId][resId]) {
+                //if (Math.round(this.resources[resId]['current']) + notifications[townId][resId] >= 0) {
+                if(notifications[townId][resId] < 0 && (Math.round(this.resources[resId]['current']) <= notifications[townId][resId] * -1) ||
+                   notifications[townId][resId] > 0 && (Math.round(this.resources[resId]['current']) >= notifications[townId][resId])) {
 
                     $('#rbNotification' + resId).html('Достигнут установленный лимит')
                                                 .show();
@@ -443,6 +459,7 @@ function ResBeautifier() {
 
         if (alter == 0 || (value < 0 || value > this.resources_max) || (alter > 0 && value < current) || (alter < 0 && value > current)) {
             alert('Невозможно установить указанный лимит. Проверьте введенное значение и попробуйте снова.');
+            return false;
         }
 
 
@@ -452,7 +469,7 @@ function ResBeautifier() {
             notifications[wofh.town.id] = {};
         }
 
-        notifications[wofh.town.id][resId] = value;
+        notifications[wofh.town.id][resId] = value * (this.resources[resId]['alter'] > 0 ? 1 : -1);
 
         this.setCookie('rbNotifications', JSON.stringify(notifications), {
             domain: '.wofh.ru'
