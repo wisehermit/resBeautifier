@@ -64,6 +64,15 @@ function ResBeautifier() {
         // Запускаем ежесекундную обработку всех пераметров
         this.handling();
 
+
+        // Вешаем дополнительное событие на слайдеры распределения наса
+        $("#mt_slds").on("slidechange", function (event, ui) {
+            // delay for default "onchange" event
+            setTimeout(function () {
+                resBeautifier.resforecast()
+            }, 100);
+        });
+
     }
 
 
@@ -319,7 +328,45 @@ function ResBeautifier() {
 
     }
 
-    
+
+    this.resforecast = function () {
+
+        for (resId in this.resources) {
+
+            var type = 2;
+
+            if (resId < 2) {
+                type = resId;
+            }
+
+            if (resId > 1 && !wofh.account.research.ability.money) {
+                type = lib.resource.data[resId].prodtype--;
+            }
+
+            var alteration  = wofh.core.calcResourceAlteration(wofh.town, {'budget': 1, stream: 0, cons: 0, consumption: 0, buildStatic: 0 }, resId),
+
+                stream      = wofh.town.resources.stream[resId],
+                cons        = wofh.town.resources.cons[resId],
+                consumption = core.calcResourceConsumption(wofh.town, resId),
+                buildStatic = wofh.town.resources.buildStatic[resId];
+
+            
+            var value = (alteration / 100 * $('#sp' + type).val())
+                      - (typeof stream      !== 'undefined' ? stream      : 0)
+                      - (typeof cons        !== 'undefined' ? cons        : 0)
+                      - (typeof consumption !== 'undefined' ? consumption : 0)
+                      + (typeof buildStatic !== 'undefined' ? buildStatic : 0);
+
+
+            if (alteration > 0) {
+                $('#rbAlter' + resId).html(value != 0 ? ((value > 0 ? '+' : '') + this.smartRound(value, 4)) : '&nbsp;');
+            }
+
+        }
+
+    }
+
+
     this.smartRound = function (value, maxlen) {
 
         return (Math.floor(value * 1000) / 1000).toFixed(Math.abs(value).toFixed(1).length <= maxlen ? 1 : 0);
@@ -363,6 +410,19 @@ function ResBeautifier() {
 
     }
 
+
+    this._debugGetResTypes = function () {
+
+        var types = ["(special)", "science", "farmers", "workers"],
+            result = '';
+
+        for (i = 0; i < 23; i++) {
+            result += i + ':' + lib.resource.data[i].name + ' = ' + types[lib.resource.data[i].prodtype] + "\n";
+        }
+
+        alert(result);
+
+    }
     
 }
 
