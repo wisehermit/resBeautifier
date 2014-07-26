@@ -1,7 +1,17 @@
+// ==UserScript==
+// @name           ResBeautifier
+// @description    UserScript for Ways of History
+// @include        http://w*.wofh.ru/*
+// @author         Wise Hermit
+// @version        1.0
+// ==/UserScript==
+
 /*
  * ResBeautifier
  * https://github.com/wisehermit/resBeautifier
  */
+
+var resBeautifierCode = function() {
 
 function ResBeautifier() {
 
@@ -621,3 +631,13 @@ function ResBeautifier() {
 
 var resBeautifier = new ResBeautifier();
 resBeautifier.initialize();
+
+} // end of resBeautifierCode
+
+
+// injecting code in the page (for google chrome)
+setTimeout(function () {
+    var rbScript = document.createElement('script');
+    rbScript.textContent = '(' + resBeautifierCode + ')()';
+    (document.body || document.getElementsByTagName('body')[0]).appendChild(rbScript);
+}, 100);
