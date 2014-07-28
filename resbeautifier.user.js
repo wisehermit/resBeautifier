@@ -3,7 +3,10 @@
 // @description    UserScript for Ways of History
 // @include        http://w*.wofh.ru/*
 // @author         Wise Hermit
+// @updateURL      https://wisehermit.github.io/resBeautifier/resbeautifier.meta.js
+// @downloadURL    https://wisehermit.github.io/resBeautifier/resbeautifier.user.js
 // @version        1.0
+// @grant          none
 // ==/UserScript==
 
 /*
@@ -21,7 +24,7 @@ function ResBeautifier() {
     this.timeoutHandler;
     this.offsetTime = 0;
 
-    this.dotImg = 'http://w20.wofh.ru/p/_.gif'; // @TODO: change to relative link
+    this.dotImg = '/p/_.gif';
     this.styles = [
         '.resBeautifier { height:20px; margin-bottom:1px; border-bottom:1px #bbb solid; }',
         '.resBeautifier  div { float:left; overflow:visible; white-space:nowrap; line-height:20px; width:50px; }',
@@ -36,7 +39,7 @@ function ResBeautifier() {
     };
 
     this.sounds = {
-      'flute': '//www.storiesinflight.com/html5/audio/flute_c_long_01.wav',
+      'flute': '//wisehermit.github.io/resBeautifier/sounds/flute.wav',
     };
 
 
@@ -241,7 +244,7 @@ function ResBeautifier() {
 
     this.showNotificationForm = function (resId) {
 
-        $('#rbNotification' + resId).html('<a>Напоминание при достижении лимита</a>');
+        $('#rbNotification' + resId).html('<a>Напоминание о достижении лимита</a>');
 
 
         var notificationSpan = this.createElement('span', {
