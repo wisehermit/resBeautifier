@@ -21,7 +21,7 @@ function ResBeautifier() {
     this.resources = {};
     this.resources_max = 0;
     
-    this.timeoutHandler = null;
+    this.timeoutHandler;
     this.offsetTime = 0;
 
     this.dotImg = '/p/_.gif';
@@ -34,12 +34,12 @@ function ResBeautifier() {
     ];
 
     this.colors = {
-        'r': ['da1b2a', 'e22b2d', 'df362f', 'de4b41', 'e15f52', 'e06f67', 'e3827c', 'e89295', 'e9a8ae', 'ecbdc5'],
-        'g': ['c2ddd8', 'acd0c4', '92c2b2', '7fbc9b', '6eba8b', '61b67b', '5cae6c', '52a752', '50a347', '4ea242']
+      'r': ['da1b2a', 'e22b2d', 'df362f', 'de4b41', 'e15f52', 'e06f67', 'e3827c', 'e89295', 'e9a8ae', 'ecbdc5'],
+      'g': ['c2ddd8', 'acd0c4', '92c2b2', '7fbc9b', '6eba8b', '61b67b', '5cae6c', '52a752', '50a347', '4ea242']
     };
 
     this.sounds = {
-        'flute': '//wisehermit.github.io/resBeautifier/sounds/flute.wav',
+      'flute': '//wisehermit.github.io/resBeautifier/sounds/flute.wav',
     };
 
 
@@ -49,7 +49,7 @@ function ResBeautifier() {
         this.offsetTime = wofh.time - this.getTimestamp();
 
         // Проверяем наличие правой колонки на текущей странице
-        if ($('.chcol1.chcol_p1').length <= 0 || typeof wofh == 'undefined') {
+        if ($('.chcol1.chcol_p1').length <= 0) {
             return false;
         }
 
@@ -57,10 +57,10 @@ function ResBeautifier() {
         this.resources_max = wofh.town.resources.max;
 
         // Создаем новый объект со всеми интересующими нас ресурсами
-        for (var resId in wofh.town.resources.current) {
+        for (resId in wofh.town.resources.current) {
 
             // Исключаем все ресурсы которых осталось меньше 1 (кроме знаний и денег)
-            if (resId < 0 || (resId > 1 && wofh.town.resources.current[resId] < 1 && wofh.town.resources.alter[resId] === 0)) {
+            if (resId < 0 || (resId > 1 && wofh.town.resources.current[resId] < 1 && wofh.town.resources.alter[resId] == 0)) {
                 continue;
             }
 
@@ -84,14 +84,14 @@ function ResBeautifier() {
 
 
         // Вешаем дополнительное событие на слайдеры распределения наса
-        $('#mt_slds').on('slidechange', function () {
+        $("#mt_slds").on("slidechange", function (event, ui) {
             // delay for default "onchange" event
             setTimeout(function () {
-                resBeautifier.resforecast();
+                resBeautifier.resforecast()
             }, 100);
         });
 
-    };
+    }
 
 
     this.buildResourceBlock = function () {
@@ -130,27 +130,27 @@ function ResBeautifier() {
 
 
         // Добавляем ресурсы
-        for (var resId in this.resources) {
+        for (resId in this.resources) {
 
             // one more wrapper. this is madness.
             var wrapper = this.createElement('div', {
                 'class': 'resBeautifier'
             });
 
-            if(((!wofh.account.research.ability.money && resId === 0) || resId == 1) || resId == 3) {
+            if(((!wofh.account.research.ability.money && resId == 0) || resId == 1) || resId == 3) {
                 wrapper.setAttribute('style', 'margin-bottom:10px;');
             }
 
             var iconImg = this.createElement('img', {
                 'src':   this.dotImg,
                 'class': 'res r' + resId,
-                'title': this.resources[resId].name
+                'title': this.resources[resId]['name']
             });
 
             var currentSpan = this.createElement('span', {
                 'id': 'rbCurrent' + resId
             });
-            currentSpan.innerHTML = this.smartRound(this.resources[resId].current, 5);
+            currentSpan.innerHTML = this.smartRound(this.resources[resId]['current'], 5);
 
             var iconDiv = this.createElement('div', {
                 'style': 'width:75px'
@@ -159,7 +159,7 @@ function ResBeautifier() {
             // Если это наука или деньги - создаем ссылку для слива
             if (resId <= 1) {
                 var upLink = this.createElement('a', {
-                    'href': resId === 0 ? '/scienceup' : '/moneyup'
+                    'href': resId == 0 ? '/scienceup' : '/moneyup'
                 });
                 $(upLink).append(iconImg);
 
@@ -175,8 +175,8 @@ function ResBeautifier() {
             var alterDiv = this.createElement('div', {
                 'id': 'rbAlter' + resId
             });
-            var alter = this.resources[resId].alter;
-            alterDiv.innerHTML = alter !== 0 ? ((alter > 0 ? '+' : '') + this.smartRound(alter, 4)) : '&nbsp;';
+            var alter = this.resources[resId]['alter'];
+            alterDiv.innerHTML = alter != 0 ? ((alter > 0 ? '+' : '') + this.smartRound(alter, 4)) : '&nbsp;';
 
             $(wrapper).append(alterDiv);
 
@@ -211,7 +211,7 @@ function ResBeautifier() {
             dropdownImg.onclick = function(x) {
                 return function() {
                     resBeautifier.showNotificationForm(x);
-                };
+                }
             }(resId);
 
             $(dropdownDiv).append(dropdownImg);
@@ -239,7 +239,7 @@ function ResBeautifier() {
 
         }
 
-    };
+    }
     
 
     this.showNotificationForm = function (resId) {
@@ -258,16 +258,16 @@ function ResBeautifier() {
         var iconImg = this.createElement('img', {
             'src':   this.dotImg,
             'class': 'res r' + resId,
-            'title': this.resources[resId].name
+            'title': this.resources[resId]['name']
         });
 
         $('#rbNotification' + resId).append(iconImg);
 
         // current value
-        $('#rbNotification' + resId + ' img').after(Math.floor(this.resources[resId].current));
+        $('#rbNotification' + resId + ' img').after(Math.floor(this.resources[resId]['current']));
 
 
-        notificationSpan = this.createElement('span', {
+        var notificationSpan = this.createElement('span', {
             'style': 'float:left;width:90px;clear:both'
         });
         notificationSpan.innerHTML = 'Количество:';
@@ -275,11 +275,11 @@ function ResBeautifier() {
         $('#rbNotification' + resId).append(notificationSpan);
 
 
-        var fraction = this.resources[resId].current / 250;
+        var fraction = this.resources[resId]['current'] / 250;
 
         var notificationInput = this.createElement('input', {
             'id':    'rbNoticeValue' + resId,
-            'value': (this.resources[resId].alter >= 0 ? Math.ceil(fraction) : Math.floor(fraction)) * 250
+            'value': (this.resources[resId]['alter'] >= 0 ? Math.ceil(fraction) : Math.floor(fraction)) * 250
         });
 
         $('#rbNotification' + resId).append(notificationInput);
@@ -295,7 +295,7 @@ function ResBeautifier() {
             return function() {
                 resBeautifier.setNotification(x);
                 return false;
-            };
+            }
         }(resId);
 
         $('#rbNotification' + resId).append(notificationSubmit);
@@ -303,7 +303,7 @@ function ResBeautifier() {
         // toggle form on click
         $('#rbNotification' + resId).toggle();
 
-    };
+    }
 
 
     this.handling = function () {
@@ -311,20 +311,20 @@ function ResBeautifier() {
         // just in case
         clearTimeout(this.timeoutHandler);
 
-        for (var resId in this.resources) {
+        for (resId in this.resources) {
 
             var elapsed = this.getTimestamp() + this.offsetTime - wofh.time;
-            this.resources[resId].current = this.resources[resId].initial + this.resources[resId].alter / 3600 * elapsed;
+            this.resources[resId]['current'] = this.resources[resId]['initial'] + this.resources[resId]['alter'] / 60 / 60 * elapsed;
 
-            if (this.resources[resId].current < 0) {
-                this.resources[resId].current = 0;
+            if (this.resources[resId]['current'] < 0) {
+                this.resources[resId]['current'] = 0;
             }
 
-            if (resId > 1 && this.resources[resId].current > this.resources_max) {
-                this.resources[resId].current = this.resources_max;
+            if (resId > 1 && this.resources[resId]['current'] > this.resources_max) {
+                this.resources[resId]['current'] = this.resources_max;
             }
 
-            $('#rbCurrent' + resId).html(this.smartRound(this.resources[resId].current, 5));
+            $('#rbCurrent' + resId).html(this.smartRound(this.resources[resId]['current'], 5));
 
             var percent = this.getPercent(resId);
             $('#rbPercent' + resId).html(percent + '%');
@@ -353,14 +353,14 @@ function ResBeautifier() {
 
             for (var resId in notifications[townId]) {
                 //if (Math.round(this.resources[resId]['current']) + notifications[townId][resId] >= 0) {
-                if(notifications[townId][resId] < 0 && (Math.round(this.resources[resId].current) <= notifications[townId][resId] * -1) ||
-                   notifications[townId][resId] > 0 && (Math.round(this.resources[resId].current) >= notifications[townId][resId])) {
+                if(notifications[townId][resId] < 0 && (Math.round(this.resources[resId]['current']) <= notifications[townId][resId] * -1) ||
+                   notifications[townId][resId] > 0 && (Math.round(this.resources[resId]['current']) >= notifications[townId][resId])) {
 
                     $('#rbNotification' + resId).html('Достигнут установленный лимит')
                                                 .show();
 
                     var audio = this.createElement('audio', {
-                        'src':     this.sounds.flute,
+                        'src':     this.sounds['flute'],
                         'preload': 'auto',
                     });
 
@@ -382,7 +382,7 @@ function ResBeautifier() {
             resBeautifier.handling()
         }, 1000);
 
-    };
+    }
 
 
     this.getPercent = function (resId) {
@@ -390,38 +390,38 @@ function ResBeautifier() {
         var max = this.resources_max;
 
         if (resId == 0) {
-            max = this.resources[resId].alter / Math.round(wofh.town.budget.bars[0] * 100) * 60 * 6.6667;
+            max = this.resources[resId]['alter'] / Math.round(wofh.town.budget.bars[0] * 100) * 60 * 6.6667;
         }
 
         if (resId == 1) {
-            max = Math.abs(this.resources[resId].alter) * 8.0000;
+            max = Math.abs(this.resources[resId]['alter']) * 8.0000;
         }
 
-        this.resources[resId].percent = Math.floor(this.resources[resId].current / (Math.round(max) / 100)); // r>f
-        return this.resources[resId].percent;
+        this.resources[resId]['percent'] = Math.floor(this.resources[resId]['current'] / (Math.round(max) / 100)); // r>f
+        return this.resources[resId]['percent'];
 
-    };
+    }
 
 
     this.getTimeLeft = function (resId) {
 
-        if (this.resources[resId].alter === 0) {
+        if (this.resources[resId]['alter'] == 0) {
             return;
         }
 
 
-        var boundary = this.resources[resId].alter > 0 ? this.resources_max : 0;
+        var boundary = this.resources[resId]['alter'] > 0 ? this.resources_max : 0;
 
         if (resId == 0) {
-            var limit = this.resources[resId].percent < 100 ? 6.6667 : 12;
-            boundary = this.resources[resId].alter / Math.round(wofh.town.budget.bars[0] * 100) * 60 * limit;
+            var limit = this.resources[resId]['percent'] < 100 ? 6.6667 : 12;
+            boundary = this.resources[resId]['alter'] / Math.round(wofh.town.budget.bars[0] * 100) * 60 * limit;
         }
 
-        if (resId == 1 && this.resources[resId].alter > 0) {
-            boundary = this.resources[resId].alter * 8.0000;
+        if (resId == 1 && this.resources[resId]['alter'] > 0) {
+            boundary = this.resources[resId]['alter'] * 8.0000;
         }
 
-        var seconds = (boundary - this.resources[resId].current) / this.resources[resId].alter * 3600;
+        var seconds = (boundary - this.resources[resId]['current']) / this.resources[resId]['alter'] * 3600;
 
         if (seconds < 0) {
             return '00:00:00';
@@ -439,7 +439,7 @@ function ResBeautifier() {
 
         return h + ':' + m + ':' + s;
 
-    };
+    }
 
     
     this.setProgressBar = function (resId, percent) {
@@ -453,24 +453,24 @@ function ResBeautifier() {
             percent = 100;
         }
 
-        if (this.resources[resId].alter !== 0 && percent != 100) {
-            color = this.colors[this.resources[resId].alter > 0 ? 'g' : 'r'][Math.floor(percent / 10)];
+        if (this.resources[resId]['alter'] != 0 && percent != 100) {
+            color = this.colors[this.resources[resId]['alter'] > 0 ? 'g' : 'r'][Math.floor(percent / 10)];
         }
 
         $('#rbProgressBar' + resId).css('width', percent + '%')
                                    .css('border-color', '#' + color);
 
-    };
+    }
 
 
     this.setNotification = function (resId) {
 
-        var alter   = this.resources[resId].alter,
-            current = this.resources[resId].current,
+        var alter   = this.resources[resId]['alter'],
+            current = this.resources[resId]['current'],
             value   = parseInt($('#rbNoticeValue' + resId).val());
 
 
-        if (alter === 0 || value < 0 || value > this.resources_max || (alter > 0 && value < current) || (alter < 0 && value > current)) {
+        if (alter == 0 || (value < 0 || value > this.resources_max) || (alter > 0 && value < current) || (alter < 0 && value > current)) {
             alert('Невозможно установить указанный лимит. Проверьте введенное значение и попробуйте снова.');
             return false;
         }
@@ -482,7 +482,7 @@ function ResBeautifier() {
             notifications[wofh.town.id] = {};
         }
 
-        notifications[wofh.town.id][resId] = value * (this.resources[resId].alter > 0 ? 1 : -1);
+        notifications[wofh.town.id][resId] = value * (this.resources[resId]['alter'] > 0 ? 1 : -1);
 
         this.setCookie('rbNotifications', JSON.stringify(notifications), {
             domain: '.wofh.ru'
@@ -491,12 +491,12 @@ function ResBeautifier() {
         $('#rbNotification' + resId).html('Установлено')
                                     .delay(1000).fadeOut(500);
 
-    };
+    }
 
 
     this.resforecast = function () {
 
-        for (var resId in this.resources) {
+        for (resId in this.resources) {
 
             var type = 2;
 
@@ -524,19 +524,19 @@ function ResBeautifier() {
 
 
             if (alteration > 0) {
-                $('#rbAlter' + resId).html(value !== 0 ? ((value > 0 ? '+' : '') + this.smartRound(value, 4)) : '&nbsp;');
+                $('#rbAlter' + resId).html(value != 0 ? ((value > 0 ? '+' : '') + this.smartRound(value, 4)) : '&nbsp;');
             }
 
         }
 
-    };
+    }
 
 
     this.smartRound = function (value, maxlen) {
 
         return (Math.floor(value * 1000) / 1000).toFixed(Math.abs(value).toFixed(1).length <= maxlen ? 1 : 0);
 
-    };
+    }
 
 
     this.createElement = function (type, attributes) {
@@ -549,7 +549,7 @@ function ResBeautifier() {
 
         return element;
 
-    };
+    }
 
 
     this.createStyleSheets = function () {
@@ -566,7 +566,7 @@ function ResBeautifier() {
 
         head.appendChild(style);
 
-    };
+    }
 
 
     this.getCookie = function (name) {
@@ -574,7 +574,7 @@ function ResBeautifier() {
         var matches = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
         return matches ? decodeURIComponent(matches[1]) : undefined;
 
-    };
+    }
 
 
     this.setCookie = function (name, value, options) {
@@ -607,14 +607,14 @@ function ResBeautifier() {
 
         document.cookie = updatedCookie;
 
-    };
+    }
 
     
     this.getTimestamp = function () {
 
         return Math.floor(new Date().getTime() / 1000);
 
-    };
+    }
 
 
     this._debugGetResTypes = function () {
@@ -628,14 +628,14 @@ function ResBeautifier() {
 
         alert(result);
 
-    };
+    }
     
 }
 
 var resBeautifier = new ResBeautifier();
 resBeautifier.initialize();
 
-}; // end of resBeautifierCode
+} // end of resBeautifierCode
 
 
 // injecting code in the page (for google chrome)
