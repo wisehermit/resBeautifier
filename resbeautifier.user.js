@@ -517,7 +517,7 @@ function ResBeautifier() {
 
             
             var value = (alteration / 100 * $('#sp' + type).val())
-                      - (typeof stream      !== 'undefined' ? stream      : 0)
+                      + (typeof stream      !== 'undefined' ? stream      : 0)
                       - (typeof cons        !== 'undefined' ? cons        : 0)
                       - (typeof consumption !== 'undefined' ? consumption : 0)
                       + (typeof buildStatic !== 'undefined' ? buildStatic : 0);
