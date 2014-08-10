@@ -5,7 +5,7 @@
 // @author         Wise Hermit
 // @updateURL      https://wisehermit.github.io/resBeautifier/resbeautifier.meta.js
 // @downloadURL    https://wisehermit.github.io/resBeautifier/resbeautifier.user.js
-// @version        1.0
+// @version        1.1
 // @grant          none
 // ==/UserScript==
 
@@ -20,6 +20,8 @@ function ResBeautifier() {
 
     this.resources = {};
     this.resources_max = 0;
+
+    this.townlist = {};
     
     this.timeoutHandler = null;
     this.offsetTime = 0;
@@ -55,6 +57,11 @@ function ResBeautifier() {
 
         // Текущая вместимость склада
         this.resources_max = wofh.town.resources.max;
+
+        // Данные по городам
+        for(var i in wofh.account.townsArr) {
+            this.townlist[wofh.account.townsArr[i].id] = wofh.account.townsArr[i].name;
+        }
 
         // Создаем новый объект со всеми интересующими нас ресурсами
         for (var resId in wofh.town.resources.current) {
@@ -125,7 +132,13 @@ function ResBeautifier() {
 
         $(storemaxLink).append(storemaxSpan);
 
+
+        var notificationArea = this.createElement('div', {
+            'id': 'rbNotificationArea'
+        });
+
         $(resBeautifierWrapper).append(storemaxLink)
+                               .append(notificationArea)
                                .insertAfter('.extop');
 
 
@@ -341,39 +354,35 @@ function ResBeautifier() {
         }
 
         // notifications
-        var notifications = JSON.parse(this.getCookie('rbNotifications') || '{}');
+        var rbn = JSON.parse(this.getCookie('rbNotifications') || '{}');
 
-        for (var townId in notifications) {
-
-            // Работаем только с текущим городом.
-            if (townId != wofh.town.id) {
-                delete notifications[townId];
-                continue;
+        for (var i in rbn) {
+            
+            if (rbn[i][0] == wofh.town.id) {
+                rbn[i][2] = this.resources[rbn[i][1]].initial;
+                rbn[i][3] = this.resources[rbn[i][1]].alter;
+                rbn[i][5] = wofh.time;
             }
+            // wofh.town.id, resId, current, alter, value, this.getTimestamp()
+            var current = rbn[i][2] + rbn[i][3] / 3600 * (this.getTimestamp() + this.offsetTime - rbn[i][5]);
+            if ((rbn[i][2] < rbn[i][4] && current >= rbn[i][4]) || (rbn[i][2] > rbn[i][4] && current <= rbn[i][4])) {
+                
+                this.showNotification(rbn[i][0], rbn[i][1], rbn[i][4]);
 
-            for (var resId in notifications[townId]) {
-                //if (Math.round(this.resources[resId]['current']) + notifications[townId][resId] >= 0) {
-                if(notifications[townId][resId] < 0 && (Math.round(this.resources[resId].current) <= notifications[townId][resId] * -1) ||
-                   notifications[townId][resId] > 0 && (Math.round(this.resources[resId].current) >= notifications[townId][resId])) {
+                var audio = this.createElement('audio', {
+                    'src':      this.sounds.flute,
+                    'preload': 'auto',
+                });
 
-                    $('#rbNotification' + resId).html('Достигнут установленный лимит')
-                                                .show();
-
-                    var audio = this.createElement('audio', {
-                        'src':     this.sounds.flute,
-                        'preload': 'auto',
-                    });
-
-                    audio.play();
-
-                    delete notifications[townId][resId];
-
-                }
+                audio.play();
+                
+                delete rbn[i];
+                
             }
 
         }
 
-        this.setCookie('rbNotifications', JSON.stringify(notifications), {
+        this.setCookie('rbNotifications', JSON.stringify(rbn), {
             domain: '.wofh.ru'
         });
 
@@ -478,11 +487,9 @@ function ResBeautifier() {
 
         var notifications = JSON.parse(this.getCookie('rbNotifications') || '{}');
 
-        if (typeof notifications[wofh.town.id] == 'undefined') {
-            notifications[wofh.town.id] = {};
-        }
-
-        notifications[wofh.town.id][resId] = value * (this.resources[resId].alter > 0 ? 1 : -1);
+        notifications[wofh.town.id + resId] = [
+            wofh.town.id, resId, current, alter, value, wofh.time
+        ];
 
         this.setCookie('rbNotifications', JSON.stringify(notifications), {
             domain: '.wofh.ru'
@@ -490,6 +497,50 @@ function ResBeautifier() {
         
         $('#rbNotification' + resId).html('Установлено')
                                     .delay(1000).fadeOut(500);
+
+    };
+
+
+    this.showNotification = function (townId, resId, value) {
+
+        var notificationDiv = this.createElement('div', {
+            'class': 'acont',
+            'style': 'margin-bottom:10px'
+        });
+
+        var resIconImg = this.createElement('img', {
+            'src':   this.dotImg,
+            'class': 'res r' + resId,
+            'title': this.resources[resId].name
+        });
+
+        $(notificationDiv).append(resIconImg)
+                          .find('img')
+                          .after(value + ' доступно в ');
+
+
+        var townIconImg = this.createElement('img', {
+            'src':   this.dotImg,
+            'class': 'icon_town',
+            'style': 'vertical-align:top'
+        });
+
+        var chtownLink = this.createElement('a', {
+            'href': '#'
+        });
+
+        $(chtownLink).click(function () {
+
+            $('#hide_inpt').val(townId);
+            $('#ch_townf').submit();
+
+        }).append(this.townlist[townId]);
+
+        $(notificationDiv).append(townIconImg)
+                          .append(chtownLink);
+
+
+        $('#rbNotificationArea').append(notificationDiv);
 
     };
 
