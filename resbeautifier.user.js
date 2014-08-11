@@ -59,27 +59,49 @@ function ResBeautifier() {
         this.resources_max = wofh.town.resources.max;
 
         // Данные по городам
-        for(var i in wofh.account.townsArr) {
-            this.townlist[wofh.account.townsArr[i].id] = wofh.account.townsArr[i].name;
+        for(var tid in wofh.account.townsArr) {
+            if(typeof wofh.account.townsArr[tid].id !== 'undefined') {
+                this.townlist[wofh.account.townsArr[tid].id] = wofh.account.townsArr[tid].name;
+            }
         }
 
-        // Создаем новый объект со всеми интересующими нас ресурсами
-        for (var resId in wofh.town.resources.current) {
+        // Resources
+        var resId = 0;
+        for(var i in lib.resource.data) {
 
-            // Исключаем все ресурсы которых осталось меньше 1 (кроме знаний и денег)
-            if (resId < 0 || (resId > 1 && wofh.town.resources.current[resId] < 1 && wofh.town.resources.alter[resId] == 0)) {
+            if(typeof lib.resource.data[i].name == 'undefined') {
                 continue;
             }
 
-            // Собираем основные параметры
+            resId = parseInt(i);
+
+            if(resId < 0 || resId != resId) { // NaN
+                continue;
+            }
+
+            if(resId == 1 && !wofh.account.research.ability.money) { // no money? no problem!
+                continue;
+            }
+
+            if(resId > 1 && isNaN(wofh.town.resources.current[resId])) {
+                continue;
+            }
+
+            if(resId > 1 && wofh.town.resources.current[resId] < 1 && wofh.town.resources.alter[resId] <= 0) {
+                continue;
+            }
+
             this.resources[resId] = {
                 name:    lib.resource.data[resId].name,
-                current: wofh.town.resources.current[resId],
-                alter:   wofh.town.resources.alter[resId],
-
-                // initial value
-                initial: wofh.town.resources.current[resId]
+                current: parseFloat(wofh.town.resources.current[resId]),
+                alter:   parseFloat(wofh.town.resources.alter[resId])
             };
+
+            if(isNaN(this.resources[resId].current)) {
+                this.resources[resId].current = 0;
+            }
+
+            this.resources[resId].initial = this.resources[resId].current;
 
         }
 
@@ -277,7 +299,7 @@ function ResBeautifier() {
         $('#rbNotification' + resId).append(iconImg);
 
         // current value
-        $('#rbNotification' + resId + ' img').after(Math.floor(this.resources[resId].current));
+        $('#rbNotification' + resId + ' img').after(this.smartRound(this.resources[resId].current, 5));
 
 
         notificationSpan = this.createElement('span', {
@@ -364,7 +386,7 @@ function ResBeautifier() {
                 rbn[i][5] = wofh.time;
             }
             // wofh.town.id, resId, current, alter, value, this.getTimestamp()
-            var current = rbn[i][2] + rbn[i][3] / 3600 * (this.getTimestamp() + this.offsetTime - rbn[i][5]);
+            var current = (rbn[i][2] + rbn[i][3] / 3600 * (this.getTimestamp() + this.offsetTime - rbn[i][5])).toFixed();
             if ((rbn[i][2] < rbn[i][4] && current >= rbn[i][4]) || (rbn[i][2] > rbn[i][4] && current <= rbn[i][4])) {
                 
                 this.showNotification(rbn[i][0], rbn[i][1], rbn[i][4]);
@@ -388,7 +410,7 @@ function ResBeautifier() {
 
 
         this.timeoutHandler = setTimeout(function () {
-            resBeautifier.handling()
+            resBeautifier.handling();
         }, 1000);
 
     };
@@ -434,6 +456,10 @@ function ResBeautifier() {
 
         if (seconds < 0) {
             return '00:00:00';
+        }
+        
+        if (seconds > 86400 * 1000) {
+            return '&infin;';
         }
 
         if (seconds > 86400 * 3) {
@@ -664,20 +690,6 @@ function ResBeautifier() {
     this.getTimestamp = function () {
 
         return Math.floor(new Date().getTime() / 1000);
-
-    };
-
-
-    this._debugGetResTypes = function () {
-
-        var types = ["(special)", "science", "farmers", "workers"],
-            result = '';
-
-        for (i = 0; i < 23; i++) {
-            result += i + ':' + lib.resource.data[i].name + ' = ' + types[lib.resource.data[i].prodtype] + "\n";
-        }
-
-        alert(result);
 
     };
     
