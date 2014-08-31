@@ -5,7 +5,7 @@
 // @author         Wise Hermit
 // @updateURL      https://wisehermit.github.io/resBeautifier/resbeautifier.meta.js
 // @downloadURL    https://wisehermit.github.io/resBeautifier/resbeautifier.user.js
-// @version        1.2
+// @version        1.3
 // @grant          none
 // ==/UserScript==
 
@@ -301,6 +301,43 @@ function ResBeautifier() {
         // current value
         $('#rbNotification' + resId + ' img').after(this.smartRound(this.resources[resId].current, 5));
 
+        var rbn = JSON.parse(this.getCookie('rbNotifications') || '{}');
+        if (typeof rbn[wofh.town.id + resId] != 'undefined') {
+        
+            $('#rbNotification' + resId).append(this.createElement('div'));
+
+            var notificationSpan = this.createElement('span', {
+                'style': 'float:left;width:90px;clear:both'
+            });
+            notificationSpan.innerHTML = 'Установлено:';
+
+            $('#rbNotification' + resId).append(notificationSpan);
+
+
+            var iconImg = this.createElement('img', {
+                'src':   this.dotImg,
+                'class': 'res r' + resId,
+                'title': this.resources[resId].name
+            });
+
+            $('#rbNotification' + resId).append(iconImg);
+
+            $('#rbNotification' + resId + ' img:last').after(this.smartRound(rbn[wofh.town.id + resId][4], 5));
+
+            var delLink = this.createElement('a', {
+                'href': '#'
+            });
+
+            $(delLink).click(function(x) {
+                return function() {
+                    resBeautifier.delNotification(x);
+                    return false;
+                };
+            }(resId)).append('удалить');
+
+            $('#rbNotification' + resId).append(' (').append(delLink).append(')');
+
+        }
 
         notificationSpan = this.createElement('span', {
             'style': 'float:left;width:90px;clear:both'
@@ -522,6 +559,22 @@ function ResBeautifier() {
         });
         
         $('#rbNotification' + resId).html('Установлено')
+                                    .delay(1000).fadeOut(500);
+
+    };
+
+
+    this.delNotification = function (resId) {
+
+        var notifications = JSON.parse(this.getCookie('rbNotifications') || '{}');
+
+        delete notifications[wofh.town.id + resId];
+
+        this.setCookie('rbNotifications', JSON.stringify(notifications), {
+            domain: '.wofh.ru'
+        });
+        
+        $('#rbNotification' + resId).html('Удалено')
                                     .delay(1000).fadeOut(500);
 
     };
