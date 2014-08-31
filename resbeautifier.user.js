@@ -524,6 +524,7 @@ function ResBeautifier() {
             $('#rbTimeleft' + resId).html(timeleft)
                                     .css('color', timeleft == '00:00:00' ? '#d33' : '#000');
 
+            $('#rbTimeleft' + resId).attr('title', this.getTimeLeft(resId, true));
 
             this.setProgressBar(resId, percent);
 
@@ -597,7 +598,9 @@ function ResBeautifier() {
     };
 
 
-    this.getTimeLeft = function (resId) {
+    this.getTimeLeft = function (resId, endtime) {
+
+        endtime = endtime || false;
 
         if (resId != 'p' && this.resources[resId].alter == 0) {
             return;
@@ -620,6 +623,24 @@ function ResBeautifier() {
         }
 
         var seconds = (boundary - this.resources[resId].current) / (this.resources[resId].alter / (resId != 'p' ? 1 : 24)) * 3600;
+
+        if (endtime) {
+
+            if(seconds <= 0) {
+                return 'already';
+            }
+
+            var timezoneOffset = (new Date).getTimezoneOffset() * 60 + servodata.account.timezone * 3600;
+            var date = new Date((this.getTimestamp() + this.offsetTime + seconds + timezoneOffset) * 1000);
+
+            return value = ('0' + date.getHours()).slice(-2) + ':'
+                         + ('0' + date.getMinutes()).slice(-2) + ':'
+                         + ('0' + date.getSeconds()).slice(-2) + ' '
+                         + ('0' + date.getDate()).slice(-2) + '.'
+                         + ('0' + (date.getMonth() + 1)).slice(-2) + '.'
+                         + date.getFullYear();
+
+        }
 
         if (seconds < 0) {
             return '00:00:00';
