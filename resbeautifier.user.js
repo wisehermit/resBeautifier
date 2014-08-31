@@ -540,7 +540,7 @@ function ResBeautifier() {
                 rbn[i][5] = wofh.time;
             }
 
-            var current = Math.floor(rbn[i][2] + rbn[i][3] / (resId == 'p' ? 86400 : 3600) * (this.getTimestamp() + this.offsetTime - rbn[i][5]));
+            var current = Math.floor(rbn[i][2] + rbn[i][3] / (rbn[i][1] == 'p' ? 86400 : 3600) * (this.getTimestamp() + this.offsetTime - rbn[i][5]));
             if ((rbn[i][2] < rbn[i][4] && current >= rbn[i][4]) || (rbn[i][2] > rbn[i][4] && current <= rbn[i][4])) {
                 
                 this.showNotification(rbn[i][0], rbn[i][1], rbn[i][4]);
@@ -585,8 +585,13 @@ function ResBeautifier() {
         if (resId == 'p') {
             max = this.population.culture;
         }
+        
+        if(this.resources[resId].current >= max) {
+            this.resources[resId].percent = 100;
+        } else {
+            this.resources[resId].percent = Math.floor(this.resources[resId].current / (Math.round(max) / 100)); // r>f
+        }
 
-        this.resources[resId].percent = Math.floor(this.resources[resId].current / (Math.round(max) / 100)); // r>f
         return this.resources[resId].percent;
 
     };
