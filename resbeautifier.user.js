@@ -20,6 +20,8 @@ function ResBeautifier() {
 
     this.resources = {};
     this.resources_max = 0;
+    
+    this.population = {};
 
     this.townlist = {};
     
@@ -31,8 +33,8 @@ function ResBeautifier() {
         '.resBeautifier { height:20px; margin-bottom:1px; border-bottom:1px #bbb solid; }',
         '.resBeautifier  div { float:left; overflow:visible; white-space:nowrap; line-height:20px; width:50px; }',
         '.resBeautifier .progressbar { float:none; border-bottom:2px #99f solid; width:0px; height:20px; }',
-        '#resBeautifier .rbNotification { margin:10px 0px; font-size:1.1em; display:none; line-height:18px; width:225px; }',
-        '#resBeautifier .storemax { display:block; color:#000; font-weight:bold; text-align:center; padding-bottom:10px; width:100%; }'
+        '.rbNotification { margin:10px 0px; font-size:1.1em; display:none; line-height:18px; width:225px; }',
+        '.storemax { display:block; color:#000; font-weight:bold; text-align:center; padding-bottom:10px; width:100%; }'
     ];
 
     this.colors = {
@@ -105,6 +107,28 @@ function ResBeautifier() {
 
         }
 
+        // Population
+        this.population = {
+            'current':    wofh.town.pop.has,
+            'culture':    wofh.town.pop.culture,
+            'alteration': wofh.town.pop.incReal,
+        };
+        
+        this.population.initial = this.population.current;
+
+        // pop like a res
+        this.resources['p'] = {
+            name:    'Население',
+            current: parseFloat(this.population.current),
+            alter:   parseFloat(this.population.alteration)
+        };
+        
+        this.resources['p'].initial = this.resources['p'].current;
+
+        if(isNaN(this.population.current)) {
+            this.population.current = 0;
+        }
+
         // Создаем основной враппер и заполняем его ресурсами
         this.buildResourceBlock();
         
@@ -166,6 +190,10 @@ function ResBeautifier() {
 
         // Добавляем ресурсы
         for (var resId in this.resources) {
+
+            if(resId == 'p') {
+                continue;
+            }
 
             // one more wrapper. this is madness.
             var wrapper = this.createElement('div', {
@@ -273,6 +301,82 @@ function ResBeautifier() {
                                    .append(notificationDiv);
 
         }
+
+        // Population
+        $('.chcol2.chcol_p1 .aC').remove();
+
+        var wrapper = this.createElement('div', {
+            'class': 'resBeautifier',
+            'style': 'margin-bottom: 10px'
+        });
+
+        var iconImg = this.createElement('img', {
+            'src':   this.dotImg,
+            'class': 'res rp',
+        });
+
+        var iconDiv = this.createElement('div', {
+            'style': 'width:140px'
+        });
+
+        var popDataSpan = this.createElement('span', {
+            'id': 'rbCurrentp'
+        });
+        popDataSpan.innerHTML = '0/0 (+0.0)';
+
+        $(iconDiv).append(iconImg)
+                  .append(popDataSpan);
+
+        $(wrapper).append(iconDiv);
+
+        var percentDiv = this.createElement('div', {
+            'id': 'rbPercentp',
+            'style': 'width:40px',
+        });
+        percentDiv.innerHTML = '&nbsp;';
+
+        var timeleftDiv = this.createElement('div', {
+            'id':    'rbTimeleftp',
+            'style': 'width:60px'
+        });
+        timeleftDiv.innerHTML = '&nbsp;';
+
+        var progressBarDiv = this.createElement('div', {
+            'id':    'rbProgressBarp',
+            'class': 'progressbar'
+        });
+
+        $(wrapper).append(percentDiv)
+                  .append(timeleftDiv);
+
+        var dropdownDiv = this.createElement('div', {
+            'style': 'width:2px;position:relative'
+        });
+
+        var dropdownImg = this.createElement('img', {
+            'src':      this.dotImg,
+            'class':   'icsort2',
+            'style':   'cursor:pointer',
+        });
+
+        dropdownImg.onclick = function(x) {
+            return function() {
+                resBeautifier.showNotificationForm(x);
+            };
+        }('p');
+
+        $(dropdownDiv).append(dropdownImg);
+
+        $(wrapper).append(dropdownDiv)
+                  .append(progressBarDiv);
+
+        var notificationDiv = this.createElement('div', {
+            'id':    'rbNotificationp',
+            'class': 'acont rbNotification',
+        });
+
+        $('.chcol2.chcol_p1').prepend(notificationDiv)
+                             .prepend(wrapper);
 
     };
     
@@ -386,17 +490,30 @@ function ResBeautifier() {
         for (var resId in this.resources) {
 
             var elapsed = this.getTimestamp() + this.offsetTime - wofh.time;
-            this.resources[resId].current = this.resources[resId].initial + this.resources[resId].alter / 3600 * elapsed;
+            this.resources[resId].current = this.resources[resId].initial + this.resources[resId].alter / (resId == 'p' ? 86400 : 3600) * elapsed;
 
             if (this.resources[resId].current < 0) {
                 this.resources[resId].current = 0;
             }
 
-            if (resId > 1 && this.resources[resId].current > this.resources_max) {
+            if (resId == 'p' && this.population.current > this.population.culture) {
+                this.population.current = this.population.culture;
+            } else if (resId > 1 && this.resources[resId].current > this.resources_max) {
                 this.resources[resId].current = this.resources_max;
             }
 
-            $('#rbCurrent' + resId).html(this.smartRound(this.resources[resId].current, 5));
+            if (resId == 'p') {
+
+                var curPop = Math.floor(this.resources[resId].current) + '/' + Math.floor(this.population.culture)
+                           + ' (' + (this.population.alteration >= 0 ? '+' : '') + this.smartRound(this.population.alteration, 4) + ')';
+
+                $('#rbCurrent' + resId).html(curPop);
+
+            } else {
+
+                $('#rbCurrent' + resId).html(this.smartRound(this.resources[resId].current, 5));
+
+            }
 
             var percent = this.getPercent(resId);
             $('#rbPercent' + resId).html(percent + '%');
@@ -423,7 +540,7 @@ function ResBeautifier() {
                 rbn[i][5] = wofh.time;
             }
 
-            var current = Math.floor(rbn[i][2] + rbn[i][3] / 3600 * (this.getTimestamp() + this.offsetTime - rbn[i][5]));
+            var current = Math.floor(rbn[i][2] + rbn[i][3] / (resId == 'p' ? 86400 : 3600) * (this.getTimestamp() + this.offsetTime - rbn[i][5]));
             if ((rbn[i][2] < rbn[i][4] && current >= rbn[i][4]) || (rbn[i][2] > rbn[i][4] && current <= rbn[i][4])) {
                 
                 this.showNotification(rbn[i][0], rbn[i][1], rbn[i][4]);
@@ -465,6 +582,10 @@ function ResBeautifier() {
             max = Math.abs(this.resources[resId].alter) * 8.0000;
         }
 
+        if (resId == 'p') {
+            max = this.population.culture;
+        }
+
         this.resources[resId].percent = Math.floor(this.resources[resId].current / (Math.round(max) / 100)); // r>f
         return this.resources[resId].percent;
 
@@ -473,7 +594,7 @@ function ResBeautifier() {
 
     this.getTimeLeft = function (resId) {
 
-        if (this.resources[resId].alter == 0) {
+        if (resId != 'p' && this.resources[resId].alter == 0) {
             return;
         }
 
@@ -489,7 +610,11 @@ function ResBeautifier() {
             boundary = this.resources[resId].alter * 8.0000;
         }
 
-        var seconds = (boundary - this.resources[resId].current) / this.resources[resId].alter * 3600;
+        if (resId == 'p') {
+            boundary = this.resources[resId].alter > 0 ? this.population.culture : 0;
+        }
+
+        var seconds = (boundary - this.resources[resId].current) / (this.resources[resId].alter / (resId != 'p' ? 1 : 24)) * 3600;
 
         if (seconds < 0) {
             return '00:00:00';
@@ -526,7 +651,8 @@ function ResBeautifier() {
         }
 
         if (this.resources[resId].alter != 0 && percent != 100) {
-            color = this.colors[this.resources[resId].alter > 0 ? 'g' : 'r'][Math.floor(percent / 10)];
+            var colKey = Math.floor(percent / 10);
+            color = this.colors[this.resources[resId].alter > 0 && resId != 'p' ? 'g' : 'r'][resId == 'p' ? 10 - colKey : colKey];
         }
 
         $('#rbProgressBar' + resId).css('width', percent + '%')
