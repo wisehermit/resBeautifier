@@ -5,7 +5,7 @@
 // @author         Wise Hermit
 // @updateURL      https://wisehermit.github.io/resBeautifier/resbeautifier.meta.js
 // @downloadURL    https://wisehermit.github.io/resBeautifier/resbeautifier.user.js
-// @version        1.4
+// @version        1.6
 // @grant          none
 // ==/UserScript==
 
@@ -24,6 +24,8 @@ function ResBeautifier() {
     this.population = {};
 
     this.townlist = {};
+
+    this.res_separators = [5, 11, 17, 22];
     
     this.timeoutHandler = null;
     this.offsetTime = 0;
@@ -187,22 +189,29 @@ function ResBeautifier() {
                                .append(notificationArea)
                                .insertAfter('.extop');
 
+        var has_margin = false;
 
         // Добавляем ресурсы
-        for (var resId in this.resources) {
+        for (var resId = 0; resId <= 22; resId++) {
+            if(!has_margin && (((!wofh.account.research.ability.money && resId == 1) || resId == 2) || $.inArray(resId, this.res_separators) >= 0)) {
+                var separator = this.createElement('div', {
+                    'style': 'margin-bottom:8px;'
+                });
+                $(resBeautifierWrapper).append(separator);
+                has_margin = true;
+            }
 
-            if(resId == 'p') {
+            if (typeof this.resources[resId] == 'undefined' || resId == 'p') {
                 continue;
             }
+
+            has_margin = false;
+
 
             // one more wrapper. this is madness.
             var wrapper = this.createElement('div', {
                 'class': 'resBeautifier'
             });
-
-            if(((!wofh.account.research.ability.money && resId == 0) || resId == 1) || resId == 3) {
-                wrapper.setAttribute('style', 'margin-bottom:10px;');
-            }
 
             var iconImg = this.createElement('img', {
                 'src':   this.dotImg,
@@ -222,7 +231,7 @@ function ResBeautifier() {
             // Если это наука или деньги - создаем ссылку для слива
             if (resId <= 1) {
                 var upLink = this.createElement('a', {
-                    'href': resId == 0 ? '/scienceup' : '/moneyup'
+                    'onclick': resId == 0 ? '$("#scienceup").click();' : '$("#moneyup").click();'
                 });
                 $(upLink).append(iconImg);
 
@@ -307,7 +316,7 @@ function ResBeautifier() {
 
         var wrapper = this.createElement('div', {
             'class': 'resBeautifier',
-            'style': 'margin-bottom: 10px'
+            'style': 'margin-bottom: 8px'
         });
 
         var iconImg = this.createElement('img', {
@@ -341,11 +350,6 @@ function ResBeautifier() {
         });
         timeleftDiv.innerHTML = '&nbsp;';
 
-        var progressBarDiv = this.createElement('div', {
-            'id':    'rbProgressBarp',
-            'class': 'progressbar'
-        });
-
         $(wrapper).append(percentDiv)
                   .append(timeleftDiv);
 
@@ -367,8 +371,7 @@ function ResBeautifier() {
 
         $(dropdownDiv).append(dropdownImg);
 
-        $(wrapper).append(dropdownDiv)
-                  .append(progressBarDiv);
+        $(wrapper).append(dropdownDiv);
 
         var notificationDiv = this.createElement('div', {
             'id':    'rbNotificationp',
@@ -496,9 +499,7 @@ function ResBeautifier() {
                 this.resources[resId].current = 0;
             }
 
-            if (resId == 'p' && this.population.current > this.population.culture) {
-                this.population.current = this.population.culture;
-            } else if (resId > 1 && this.resources[resId].current > this.resources_max) {
+            if (resId != 'p' && resId > 1 && this.resources[resId].current > this.resources_max) {
                 this.resources[resId].current = this.resources_max;
             }
 
@@ -524,9 +525,16 @@ function ResBeautifier() {
             $('#rbTimeleft' + resId).html(timeleft)
                                     .css('color', timeleft == '00:00:00' ? '#d33' : '#000');
 
-            $('#rbTimeleft' + resId).attr('title', this.getTimeLeft(resId, true));
 
-            this.setProgressBar(resId, percent);
+            var pop_limit_left = (this.population.culture - this.resources['p'].current) / (this.resources['p'].alter / 24) * 3600;
+            if (resId == 'p' && (pop_limit_left < 86400 || this.resources['p'].current > this.population.culture)) {
+                $('#rbCurrent' + resId).css('color', '#d33')
+                                       .css('font-weight', 'bold');
+            }
+
+            if (resId != 'p') {
+                this.setProgressBar(resId, percent);
+            }
 
         }
 
@@ -586,8 +594,8 @@ function ResBeautifier() {
         if (resId == 'p') {
             max = this.population.culture;
         }
-        
-        if(this.resources[resId].current >= max) {
+
+        if(resId != 0 && resId != 'p' && this.resources[resId].current >= max) {
             this.resources[resId].percent = 100;
         } else {
             this.resources[resId].percent = Math.floor(this.resources[resId].current / (Math.round(max) / 100)); // r>f
@@ -790,12 +798,18 @@ function ResBeautifier() {
                 type = lib.resource.data[resId].prodtype - 1;
             }
 
-            var alteration  = wofh.core.calcResourceAlteration(wofh.town, {'budget': 1, stream: 0, cons: 0, consumption: 0, buildStatic: 0 }, resId),
-
+            var alteration  = 0,
                 stream      = wofh.town.resources.stream[resId],
                 cons        = wofh.town.resources.cons[resId],
                 consumption = core.calcResourceConsumption(wofh.town, resId),
                 buildStatic = wofh.town.resources.buildStatic[resId];
+
+
+            if(resId == 0) {
+                alteration = wofh.core.calcResourceAlteration(wofh.town, {'budget': 1}, 0);
+            } else {
+                alteration = wofh.core.calcResourceAlteration(wofh.town, {'budget': 1, stream: 0, cons: 0, consumption: 0, buildStatic: 0}, resId);
+            }
 
             
             var value = (alteration / 100 * $('#sp' + type).val())
